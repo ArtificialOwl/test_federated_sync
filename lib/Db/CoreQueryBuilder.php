@@ -47,15 +47,13 @@ class CoreQueryBuilder {
 	const TABLE_ITEMS = 'tfs_items';
 	const TABLE_ENTRIES = 'tfs_entries';
 	const TABLE_SHARES = 'tfs_shares';
-	const TABLE_HISTORY = 'tfs_history';
 
 	protected ConfigService $configService;
 
 	private array $tables = [
 		self::TABLE_ITEMS,
 		self::TABLE_ENTRIES,
-		self::TABLE_SHARES,
-		self::TABLE_HISTORY
+		self::TABLE_SHARES
 	];
 
 

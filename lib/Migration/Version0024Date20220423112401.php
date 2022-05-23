@@ -156,23 +156,6 @@ class Version0024Date20220423112401 extends SimpleMigrationStep {
 
 		$table->setPrimaryKey(['id']);
 
-		$table = $schema->createTable('tfs_history');
-		$table->addColumn(
-			'id', 'integer', [
-					'autoincrement' => true,
-					'notnull' => true,
-					'length' => 4,
-					'unsigned' => true,
-				]
-		);
-		$table->addColumn(
-			'line', 'string', [
-					  'notnull' => true,
-					  'length' => 512
-				  ]
-		);
-		$table->setPrimaryKey(['id']);
-
 		return $schema;
 	}
 }

@@ -16,36 +16,25 @@ Run
 ### Create a new item, owned by `userId`
 
 ```
-./occ tfs:history --user <userId>
+./occ tfs:create --user <userId>
 ```
 
-### Create a new entry to an item by `itemId`
+### Create a new (sub) entry to an item by `itemId`
 
 ```
 ./occ tfs:create --related <itemId>
 ```
 
-### Share an item, based on `itemId` and recipient `singleId`
+### Share an item, based on `itemId`, recipient `singleId` and initiator `userId`
 
 ```
-./occ tfs:share <itemId> <singleId> [--initiator]
+./occ tfs:share <itemId> <singleId> <userId>
 ```
 
-`--initiator` can be used to emulate the origin of the creation of the share using `singleId`
-
-### Get history of different events triggered on items and shares
+### Display the items available from `userId`'s point of view
 
 ```
-./occ tfs:history [--clean] [--live]
-```
-
-`--clean` will empty the history  
-`--live` will open a live feed for future events
-
-### Display the items available from singleId's point of view
-
-```
-./occ tfs:read <singleId>
+./occ tfs:read <userId>
 ```
 
 - Uninstall the app

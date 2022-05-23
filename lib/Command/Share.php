@@ -40,11 +40,9 @@ use OCA\Circles\Exceptions\FederatedUserNotFoundException;
 use OCA\Circles\Exceptions\InvalidIdException;
 use OCA\Circles\Exceptions\RequestBuilderException;
 use OCA\Circles\Exceptions\SingleCircleNotFoundException;
-use OCA\Circles\Service\CircleService;
-use OCA\Circles\Service\FederatedUserService;
 use OCA\TFS\AppInfo\Application;
+use OCA\TFS\Db\ItemRequest;
 use OCA\TFS\FederatedItems\TestFederatedSync;
-use OCA\TFS\Service\ShareService;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Component\Console\Input\InputArgument;
@@ -61,19 +59,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Share extends Base {
 
 
-	/** @var FederatedUserService */
-	private $federatedUserService;
-
-	/** @var ShareService */
-	private $shareService;
-
-	/** @var CircleService */
-	private $circleService;
+	private ItemRequest $itemRequest;
 
 
-	/**
-	 *
-	 */
+	public function __construct(ItemRequest $itemRequest) {
+		parent::__construct();
+		$this->itemRequest = $itemRequest;
+	}
+
+
 	protected function configure() {
 		parent::configure();
 		$this->setName('tfs:share')
@@ -97,6 +91,7 @@ class Share extends Base {
 	 * @throws SingleCircleNotFoundException
 	 * @throws ContainerExceptionInterface
 	 * @throws NotFoundExceptionInterface
+	 * @throws \OCA\TFS\Exceptions\ItemNotFoundException
 	 */
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$itemId = $input->getArgument('item_id');
@@ -117,6 +112,7 @@ class Share extends Base {
 			}
 		}
 
+		$this->itemRequest->getItem($itemId);
 
 		$circleManager->startSession($initiator);
 		$circleManager->getShareManager(Application::APP_ID, TestFederatedSync::ITEM_TYPE)

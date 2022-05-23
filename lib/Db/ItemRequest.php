@@ -33,11 +33,9 @@ namespace OCA\TFS\Db;
 
 
 use OCA\Circles\CirclesManager;
-use OCA\Circles\Model\Helpers\FederatedUserFieldHelper;
 use OCA\TFS\Exceptions\ItemNotFoundException;
 use OCA\TFS\Model\Item;
 use OCA\TFS\Service\ConfigService;
-use OCA\TFS\Service\HistoryService;
 
 
 /**
@@ -48,20 +46,13 @@ use OCA\TFS\Service\HistoryService;
 class ItemRequest extends ItemRequestBuilder {
 
 
-	/** @var HistoryService */
-	private $historyService;
-
-
 	/**
 	 * ItemRequest constructor.
 	 *
-	 * @param HistoryService $historyService
 	 * @param ConfigService $configService
 	 */
-	public function __construct(HistoryService $historyService, ConfigService $configService) {
+	public function __construct(ConfigService $configService) {
 		parent::__construct($configService);
-
-		$this->historyService = $historyService;
 	}
 
 
@@ -70,7 +61,6 @@ class ItemRequest extends ItemRequestBuilder {
 	 */
 	public function save(Item $item): void {
 		$qb = $this->getItemInsertSql();
-		$this->historyService->add('Saving new Item <info>' . $item->getUniqueId() . '</info>');
 
 		$qb->setValue('unique_id', $qb->createNamedParameter($item->getUniqueId()))
 		   ->setValue('title', $qb->createNamedParameter($item->getTitle()))

@@ -25,7 +25,6 @@
 
 	<commands>
 		<command>OCA\TFS\Command\Create</command>
-		<command>OCA\TFS\Command\History</command>
 		<command>OCA\TFS\Command\Share</command>
 		<command>OCA\TFS\Command\Show</command>
 		<command>OCA\TFS\Command\Uninstall</command>

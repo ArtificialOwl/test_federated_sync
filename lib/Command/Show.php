@@ -105,7 +105,7 @@ class Show extends Base {
 		$tree = new TreeNode(null, new SimpleDataStore());
 		foreach ($items as $item) {
 			$node = new TreeNode($tree, new SimpleDataStore(['item' => $item]));
-			$entries = $this->entryRequest->getForItem($item->getUniqueId());
+			$entries = $this->entryRequest->getRelated($item->getUniqueId());
 			foreach ($entries as $entry) {
 				new TreeNode($node, new SimpleDataStore(['entry' => $entry]));
 			}

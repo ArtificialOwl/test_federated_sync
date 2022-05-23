@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 
 /**
- * Circles - Bring cloud-users closer together.
+ * Testing Federated Sync
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later. See the COPYING file.

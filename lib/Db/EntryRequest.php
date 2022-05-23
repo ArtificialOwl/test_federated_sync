@@ -32,8 +32,8 @@ declare(strict_types=1);
 namespace OCA\TFS\Db;
 
 
-use OCA\TFS\Tools\Exceptions\RowNotFoundException;
 use OCA\TFS\Model\Entry;
+use OCA\TFS\Tools\Exceptions\RowNotFoundException;
 
 
 /**
@@ -57,6 +57,15 @@ class EntryRequest extends EntryRequestBuilder {
 		$qb->execute();
 	}
 
+	/**
+	 * @param array $entries
+	 */
+	public function saveAll(array $entries): void {
+		foreach ($entries as $entry) {
+			$this->save($entry);
+		}
+	}
+
 
 	/**
 	 * @param string $uniqueId
@@ -77,12 +86,24 @@ class EntryRequest extends EntryRequestBuilder {
 	 *
 	 * @return Entry[];
 	 */
-	public function getForItem(string $itemId): array {
+	public function getRelated(string $itemId): array {
 		$qb = $this->getEntrySelectSql();
 		$qb->limitToItemId($itemId);
 
 		return $this->getItemsFromRequest($qb);
 	}
+
+
+	/**
+	 * @param string $itemId
+	 */
+	public function removeEntriesFromItem(string $itemId): void {
+		$qb = $this->getEntryDeleteSql();
+		$qb->limitToItemId($itemId);
+
+		$qb->executeStatement();
+	}
+
 
 }
 

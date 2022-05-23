@@ -36,11 +36,12 @@ use JsonSerializable;
 use OCA\TFS\Tools\Db\IQueryRow;
 use OCA\TFS\Tools\IDeserializable;
 use OCA\TFS\Tools\Traits\TArrayTools;
+use OCA\TFS\Tools\Traits\TDeserialize;
 
 
 class Item implements IQueryRow, JsonSerializable, IDeserializable {
-
 	use TArrayTools;
+	use TDeserialize;
 
 	private int $id = 0;
 	private string $uniqueId = '';
@@ -209,6 +210,7 @@ class Item implements IQueryRow, JsonSerializable, IDeserializable {
 		$this->setUserId($this->get('userId', $data));
 		$this->setUserSingleId($this->get('userSingleId', $data));
 		$this->setTitle($this->get('title', $data));
+		$this->setEntries($this->deserializeArray($this->getArray('entries', $data), Entry::class));
 
 		return $this;
 	}

@@ -36,12 +36,12 @@ use OCA\Circles\IFederatedSyncManager;
 use OCA\Circles\Model\FederatedUser;
 use OCA\Circles\Model\Membership;
 use OCA\TFS\AppInfo\Application;
+use OCA\TFS\Db\EntryRequest;
 use OCA\TFS\Db\ItemRequest;
 use OCA\TFS\Db\ShareRequest;
 use OCA\TFS\Exceptions\ItemNotFoundException;
 use OCA\TFS\Model\Item;
 use OCA\TFS\Model\Share;
-use OCA\TFS\Tools\Exceptions\InvalidItemException;
 use OCA\TFS\Tools\Traits\TArrayTools;
 use OCA\TFS\Tools\Traits\TDeserialize;
 
@@ -54,14 +54,17 @@ class TestFederatedSync implements IFederatedSyncManager {
 
 	private ShareRequest $shareRequest;
 	private ItemRequest $itemRequest;
+	private EntryRequest $entryRequest;
 
 
 	public function __construct(
 		ShareRequest $shareRequest,
-		ItemRequest $itemRequest
+		ItemRequest $itemRequest,
+		EntryRequest $entryRequest
 	) {
 		$this->shareRequest = $shareRequest;
 		$this->itemRequest = $itemRequest;
+		$this->entryRequest = $entryRequest;
 	}
 
 
@@ -122,6 +125,7 @@ class TestFederatedSync implements IFederatedSyncManager {
 	 */
 	public function serializeItem(string $itemId): array {
 		$item = $this->itemRequest->getItem($itemId);
+		$item->setEntries($this->entryRequest->getRelated($itemId));
 
 		return $this->serialize($item);
 	}
@@ -131,12 +135,16 @@ class TestFederatedSync implements IFederatedSyncManager {
 	 * @param string $itemId
 	 * @param array $serializedData
 	 *
-	 * @throws InvalidItemException
+	 * @throws \OCA\Circles\Tools\Exceptions\InvalidItemException
 	 */
 	public function syncItem(string $itemId, array $serializedData): void {
 		/** @var Item $item */
 		$item = $this->deserialize($serializedData, Item::class);
+
 		$this->itemRequest->save($item);
+
+		$this->entryRequest->removeEntriesFromItem($item->getUniqueId());
+		$this->entryRequest->saveAll($item->getEntries());
 	}
 
 

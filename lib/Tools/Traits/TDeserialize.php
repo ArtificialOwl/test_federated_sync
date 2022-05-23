@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 
 /**
- * Circles - Bring cloud-users closer together.
+ * Testing Federated Sync
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later. See the COPYING file.
@@ -37,7 +37,6 @@ use OCA\TFS\Tools\IDeserializable;
 
 trait TDeserialize {
 
-
 	/**
 	 * @param JsonSerializable $model
 	 *
@@ -61,8 +60,8 @@ trait TDeserialize {
 	 * @param array $data
 	 * @param string $class
 	 *
-	 * @return IDeserializable
-	 * @throws InvalidItemException
+	 * @return \OCA\Circles\Tools\IDeserializable
+	 * @throws \OCA\Circles\Tools\Exceptions\InvalidItemException
 	 */
 	public function deserialize(array $data, string $class): IDeserializable {
 		if ($class instanceof IDeserializable) {
@@ -82,17 +81,29 @@ trait TDeserialize {
 	 * @param string $class
 	 *
 	 * @return IDeserializable[]
-	 * @throws InvalidItemException
 	 */
-	public function deserializeArray(string $json, string $class): array {
-		$arr = [];
+	public function deserializeArrayFromJson(string $json, string $class): array {
 		$data = json_decode($json, true);
 		if (!is_array($data)) {
-			return $arr;
+			return [];
 		}
 
+		return $this->deserializeArray($data, $class);
+	}
+
+	/**
+	 * @param array $data
+	 * @param string $class
+	 *
+	 * @return array
+	 */
+	public function deserializeArray(array $data, string $class): array {
+		$arr = [];
 		foreach ($data as $entry) {
-			$arr[] = $this->deserialize($entry, $class);
+			try {
+				$arr[] = $this->deserialize($entry, $class);
+			} catch (InvalidItemException $e) {
+			}
 		}
 
 		return $arr;
@@ -111,4 +122,5 @@ trait TDeserialize {
 
 		return $this->deserialize($data, $class);
 	}
+
 }
