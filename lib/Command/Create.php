@@ -32,17 +32,40 @@ declare(strict_types=1);
 namespace OCA\TFS\Command;
 
 
+use Exception;
 use OC\Core\Command\Base;
 use OCA\Circles\CirclesManager;
+use OCA\Circles\Exceptions\CircleNotFoundException;
+use OCA\Circles\Exceptions\CircleSharesManagerException;
+use OCA\Circles\Exceptions\FederatedItemException;
+use OCA\Circles\Exceptions\FederatedSyncConflictException;
+use OCA\Circles\Exceptions\FederatedSyncManagerNotFoundException;
+use OCA\Circles\Exceptions\FederatedUserException;
+use OCA\Circles\Exceptions\FederatedUserNotFoundException;
+use OCA\Circles\Exceptions\InitiatorNotFoundException;
+use OCA\Circles\Exceptions\InvalidIdException;
+use OCA\Circles\Exceptions\MemberNotFoundException;
+use OCA\Circles\Exceptions\OwnerNotFoundException;
+use OCA\Circles\Exceptions\RemoteInstanceException;
+use OCA\Circles\Exceptions\RemoteNotFoundException;
+use OCA\Circles\Exceptions\RemoteResourceNotFoundException;
+use OCA\Circles\Exceptions\RequestBuilderException;
+use OCA\Circles\Exceptions\SingleCircleNotFoundException;
+use OCA\Circles\Exceptions\SyncedSharedAlreadyExistException;
+use OCA\Circles\Exceptions\UnknownRemoteException;
+use OCA\Circles\Exceptions\UserTypeNotFoundException;
+use OCA\TFS\AppInfo\Application;
 use OCA\TFS\Db\EntryRequest;
 use OCA\TFS\Db\ItemRequest;
 use OCA\TFS\Exceptions\ItemNotFoundException;
+use OCA\TFS\FederatedItems\TestFederatedSync;
 use OCA\TFS\Model\Entry;
 use OCA\TFS\Model\Item;
 use OCA\TFS\Tools\Exceptions\RowNotFoundException;
 use OCA\TFS\Tools\Traits\TStringTools;
 use OCP\IUserManager;
-use Symfony\Component\Console\Exception\InvalidOptionException;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -90,11 +113,9 @@ class Create extends Base {
 		parent::configure();
 		$this->setName('tfs:create')
 			 ->setDescription('Create random data at top level, or related to a root item')
+			 ->addArgument('user', InputArgument::REQUIRED, 'initiator')
 			 ->addOption(
 				 'related', '', InputOption::VALUE_REQUIRED, 'create random data, related to a root item'
-			 )
-			 ->addOption(
-				 'user', '', InputOption::VALUE_REQUIRED, 'assign item to a UserId'
 			 );
 
 	}
@@ -110,31 +131,28 @@ class Create extends Base {
 	 */
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$related = $input->getOption('related');
-		$userId = $input->getOption('user');
+		$userId = $input->getArgument('user');
 
-		if ($userId) {
-			$user = $this->userManager->get($userId);
-			if (is_null($user)) {
-				throw new InvalidOptionException('must specify a valid user');
-			}
+		$user = $this->userManager->get($userId);
+		if (is_null($user)) {
+			throw new InvalidArgumentException('must specify a valid user');
+		}
+
+		$userId = $user->getUID();
+
+		if (!$related) {
 			try {
-				$item = $this->createItem($user->getUID());
+				$result = $this->createItem($userId);
 			} catch (ItemNotFoundException $e) {
 				throw new ItemNotFoundException('item creation failed');
 			}
-			$output->writeln(json_encode($item, JSON_PRETTY_PRINT));
-
-			return 0;
+		} else {
+			$result = $this->createEntry($related, $userId);
 		}
 
-		if ($related) {
-			$entry = $this->createEntry($related);
-			$output->writeln(json_encode($entry, JSON_PRETTY_PRINT));
+		$output->writeln(json_encode($result, JSON_PRETTY_PRINT));
 
-			return 0;
-		}
-
-		throw new InvalidOptionException('must specify --user <userId> or --related <itemId>');
+		return 0;
 	}
 
 
@@ -142,7 +160,21 @@ class Create extends Base {
 	 * @param string $userId
 	 *
 	 * @return Item
+	 * @throws CircleNotFoundException
+	 * @throws FederatedItemException
+	 * @throws FederatedUserException
+	 * @throws FederatedUserNotFoundException
+	 * @throws InvalidIdException
 	 * @throws ItemNotFoundException
+	 * @throws MemberNotFoundException
+	 * @throws OwnerNotFoundException
+	 * @throws RemoteInstanceException
+	 * @throws RemoteNotFoundException
+	 * @throws RemoteResourceNotFoundException
+	 * @throws RequestBuilderException
+	 * @throws SingleCircleNotFoundException
+	 * @throws UnknownRemoteException
+	 * @throws UserTypeNotFoundException
 	 */
 	private function createItem(string $userId): Item {
 
@@ -164,12 +196,38 @@ class Create extends Base {
 
 	/**
 	 * @param string $itemId
+	 * @param string $userId
 	 *
 	 * @return Entry
+	 * @throws CircleNotFoundException
+	 * @throws CircleSharesManagerException
+	 * @throws FederatedSyncConflictException
+	 * @throws FederatedSyncManagerNotFoundException
+	 * @throws FederatedUserException
+	 * @throws FederatedUserNotFoundException
+	 * @throws InitiatorNotFoundException
+	 * @throws InvalidIdException
 	 * @throws ItemNotFoundException
-	 * @throws RowNotFoundException
+	 * @throws RequestBuilderException
+	 * @throws SingleCircleNotFoundException
+	 * @throws SyncedSharedAlreadyExistException
 	 */
-	private function createEntry(string $itemId): Entry {
+	private function createEntry(string $itemId, string $userId): Entry {
+		$this->itemRequest->getItem($itemId);
+
+		/** @var CirclesManager $circleManager */
+		$circleManager = \OC::$server->get(CirclesManager::class);
+
+		try {
+			$initiator = $circleManager->getFederatedUser($userId);
+		} catch (Exception $e) {
+			try {
+				$initiator = $circleManager->getLocalFederatedUser($userId);
+			} catch (Exception $e) {
+				throw new Exception('initiator userId/singleId not found');
+			}
+		}
+
 		$this->itemRequest->getItem($itemId);
 
 		$entry = new Entry();
@@ -177,7 +235,11 @@ class Create extends Base {
 		$entry->setUniqueId($this->token(15));
 		$entry->setTitle($this->generateRandomSentence(rand(3, 9)));
 
-		$this->entryRequest->save($entry);
+		$circleManager->startSession($initiator);
+		$circleManager->getShareManager(Application::APP_ID, TestFederatedSync::ITEM_TYPE)
+					  ->updateItem($itemId, [
+						  'addEntry' => json_encode($entry)
+					  ]);
 
 		return $this->entryRequest->getEntry($entry->getUniqueId());
 	}

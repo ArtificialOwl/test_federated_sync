@@ -32,21 +32,25 @@ declare(strict_types=1);
 namespace OCA\TFS\FederatedItems;
 
 
+use OCA\Circles\IFederatedPartialSyncManager;
 use OCA\Circles\IFederatedSyncManager;
-use OCA\Circles\Model\FederatedUser;
-use OCA\Circles\Model\Membership;
+use OCA\Circles\IFederatedUser;
 use OCA\TFS\AppInfo\Application;
 use OCA\TFS\Db\EntryRequest;
 use OCA\TFS\Db\ItemRequest;
 use OCA\TFS\Db\ShareRequest;
 use OCA\TFS\Exceptions\ItemNotFoundException;
+use OCA\TFS\Model\Entry;
 use OCA\TFS\Model\Item;
 use OCA\TFS\Model\Share;
 use OCA\TFS\Tools\Traits\TArrayTools;
 use OCA\TFS\Tools\Traits\TDeserialize;
 
 
-class TestFederatedSync implements IFederatedSyncManager {
+class TestFederatedSync implements
+	IFederatedSyncManager,
+	IFederatedPartialSyncManager {
+
 	use TArrayTools;
 	use TDeserialize;
 
@@ -106,42 +110,23 @@ class TestFederatedSync implements IFederatedSyncManager {
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 *
-	 * @return bool
-	 */
-	public function isSharedWithCircle(string $itemId, string $circleId): bool {
-		return true;
-//		$item = $this->shareRequest->getShare($itemId, $circleId);
-	}
-
-
-	/**
-	 * @param string $itemId
-	 *
-	 * @return array
-	 * @throws ItemNotFoundException
+	 * @inheritdoc
 	 */
 	public function serializeItem(string $itemId): array {
-		$item = $this->itemRequest->getItem($itemId);
-		$item->setEntries($this->entryRequest->getRelated($itemId));
+		$item = $this->getItem($itemId);
 
 		return $this->serialize($item);
 	}
 
 
 	/**
-	 * @param string $itemId
-	 * @param array $serializedData
-	 *
-	 * @throws \OCA\Circles\Tools\Exceptions\InvalidItemException
+	 * @inheritdoc
 	 */
 	public function syncItem(string $itemId, array $serializedData): void {
 		/** @var Item $item */
 		$item = $this->deserialize($serializedData, Item::class);
 
-		$this->itemRequest->save($item);
+		$this->itemRequest->insertOrUpdate($item);
 
 		$this->entryRequest->removeEntriesFromItem($item->getUniqueId());
 		$this->entryRequest->saveAll($item->getEntries());
@@ -149,18 +134,13 @@ class TestFederatedSync implements IFederatedSyncManager {
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param array $extraData
-	 * @param FederatedUser $federatedUser
-	 *
-	 * @return bool
+	 * @inheritdoc
 	 */
 	public function isShareCreatable(
 		string $itemId,
 		string $circleId,
 		array $extraData,
-		FederatedUser $federatedUser
+		IFederatedUser $federatedUser
 	): bool {
 //		echo '___' . json_encode($federatedUser, JSON_PRETTY_PRINT) . "\n";
 
@@ -169,16 +149,13 @@ class TestFederatedSync implements IFederatedSyncManager {
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param array $extraData
-	 * @param FederatedUser $federatedUser
+	 * @inheritdoc
 	 */
 	public function onShareCreation(
 		string $itemId,
 		string $circleId,
 		array $extraData,
-		FederatedUser $federatedUser
+		IFederatedUser $federatedUser
 	): void {
 		$share = new Share();
 		$share->setItemId($itemId)
@@ -190,75 +167,91 @@ class TestFederatedSync implements IFederatedSyncManager {
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param array $extraData
-	 * @param Membership $membership
-	 *
-	 * @return bool
+	 * @inheritdoc
 	 */
 	public function isShareModifiable(
 		string $itemId,
 		string $circleId,
 		array $extraData,
-		Membership $membership
+		IFederatedUser $federatedUser
 	): bool {
 		return true;
 	}
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param array $extraData
-	 * @param Membership $membership
+	 * @inheritdoc
 	 */
 	public function onShareModification(
 		string $itemId,
 		string $circleId,
 		array $extraData,
-		Membership $membership
+		IFederatedUser $federatedUser
 	): void {
 	}
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param Membership $membership
-	 *
-	 * @return bool
+	 * @inheritdoc
 	 */
 	public function isShareDeletable(
 		string $itemId,
 		string $circleId,
-		Membership $membership
+		IFederatedUser $federatedUser
 	): bool {
 		return true;
 	}
 
 
 	/**
-	 * @param string $itemId
-	 * @param string $circleId
-	 * @param Membership $membership
+	 * @inheritdoc
 	 */
-	public function onShareDeletion(string $itemId, string $circleId, Membership $membership): void {
+	public function onShareDeletion(string $itemId, string $circleId, IFederatedUser $federatedUser): void {
 	}
 
+	/**
+	 * @inheritdoc
+	 */
 	public function isItemUpdatable(
 		string $itemId,
 		array $extraData,
-		FederatedUser $federatedUser
-	): bool {
-		return true;
+		IFederatedUser $federatedUser
+	): array {
+		$item = $this->getItem($itemId);
+
+		// TODO: implement SyncedItemLock
+
+		/** @var Entry $entry */
+		$entry = $this->deserialize($this->getArray('addEntry', $extraData), Entry::class);
+		$item->addEntry($entry);
+
+		return $this->serialize($item);
 	}
 
-
+	/**
+	 * @inheritdoc
+	 */
 	public function getShareDetails(string $itemId, string $circleId): array {
 		return [];
 	}
 
+	/**
+	 * @inheritdoc
+	 */
 	public function syncShare(string $itemId, string $circleId, array $extraData): void {
+	}
+
+
+	/**
+	 * @param string $itemId
+	 *
+	 * @return Item
+	 * @throws ItemNotFoundException
+	 */
+	private function getItem(string $itemId): Item {
+		$item = $this->itemRequest->getItem($itemId);
+		$item->setEntries($this->entryRequest->getRelated($itemId));
+
+		return $item;
 	}
 }

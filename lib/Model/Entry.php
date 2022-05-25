@@ -32,10 +32,9 @@ declare(strict_types=1);
 namespace OCA\TFS\Model;
 
 
-use JetBrains\PhpStorm\ArrayShape;
-use JetBrains\PhpStorm\Pure;
 use JsonSerializable;
 use OCA\TFS\Tools\Db\IQueryRow;
+use OCA\TFS\Tools\Exceptions\InvalidItemException;
 use OCA\TFS\Tools\IDeserializable;
 use OCA\TFS\Tools\Traits\TArrayTools;
 
@@ -140,12 +139,17 @@ class Entry implements IQueryRow, JsonSerializable, IDeserializable {
 	 * @param array $data
 	 *
 	 * @return IDeserializable
+	 * @throws InvalidItemException
 	 */
 	public function import(array $data): IDeserializable {
 		$this->setId($this->getInt('id', $data));
 		$this->setUniqueId($this->get('uniqueId', $data));
 		$this->setItemId($this->get('itemId', $data));
 		$this->setTitle($this->get('title', $data));
+
+		if ($this->getItemId() === '' || $this->getUniqueId() === '') {
+			throw new InvalidItemException();
+		}
 
 		return $this;
 	}
@@ -168,13 +172,6 @@ class Entry implements IQueryRow, JsonSerializable, IDeserializable {
 	/**
 	 * @return array
 	 */
-	#[Pure]
-	#[ArrayShape([
-		'id' => 'int',
-		'uniqueId' => 'string',
-		'itemId' => 'string',
-		'title' => 'string'
-	])]
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->getId(),

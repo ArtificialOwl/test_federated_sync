@@ -96,6 +96,7 @@ class Version0024Date20220423112401 extends SimpleMigrationStep {
 							]
 		);
 		$table->setPrimaryKey(['id']);
+		$table->addUniqueIndex(['unique_id']);
 
 		$table = $schema->createTable('tfs_entries');
 		$table->addColumn(

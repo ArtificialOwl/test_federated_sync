@@ -168,6 +168,17 @@ class Item implements IQueryRow, JsonSerializable, IDeserializable {
 		return $this->entries;
 	}
 
+	/**
+	 * @param Entry $entry
+	 *
+	 * @return $this
+	 */
+	public function addEntry(Entry $entry): self {
+		$this->entries[] = $entry;
+
+		return $this;
+	}
+
 
 	/**
 	 * @param array $data

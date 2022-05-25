@@ -32,6 +32,7 @@ declare(strict_types=1);
 namespace OCA\TFS\Db;
 
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use OCA\Circles\CirclesManager;
 use OCA\TFS\Exceptions\ItemNotFoundException;
 use OCA\TFS\Model\Item;
@@ -70,6 +71,22 @@ class ItemRequest extends ItemRequestBuilder {
 		$qb->execute();
 	}
 
+
+	public function insertOrUpdate(Item $item): void {
+		try {
+			$this->save($item);
+		} catch (UniqueConstraintViolationException $e) {
+			$this->update($item);
+		}
+	}
+
+
+	public function update(Item $item): void {
+		$qb = $this->getItemUpdateSql();
+		$qb->set('title', $qb->createNamedParameter($item->getTitle()));
+
+		$qb->executeStatement();
+	}
 
 	/**
 	 * @param string $uniqueId
@@ -145,5 +162,6 @@ class ItemRequest extends ItemRequestBuilder {
 
 		return $items;
 	}
+
 }
 

@@ -62,8 +62,5 @@ class ItemService {
 	}
 
 
-	public function getItemsForUser(string $userId): array {
-
-	}
 }
 

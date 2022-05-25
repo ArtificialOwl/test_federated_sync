@@ -32,8 +32,6 @@ declare(strict_types=1);
 namespace OCA\TFS\Model;
 
 
-use JetBrains\PhpStorm\ArrayShape;
-use JetBrains\PhpStorm\Pure;
 use JsonSerializable;
 use OCA\TFS\Tools\Db\IQueryRow;
 use OCA\TFS\Tools\Traits\TArrayTools;
@@ -145,7 +143,6 @@ class Share implements IQueryRow, JsonSerializable {
 	 *
 	 * @return bool
 	 */
-	#[Pure]
 	public function isAllowed(int $action): bool {
 		return (($this->getPermissions() & $action) !== 0);
 	}
@@ -169,12 +166,6 @@ class Share implements IQueryRow, JsonSerializable {
 	/**
 	 * @return array
 	 */
-	#[Pure]
-	#[ArrayShape([
-		'id' => 'int',
-		'itemId' => 'string',
-		'circleId' => 'string'
-	])]
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->getId(),
