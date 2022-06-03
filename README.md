@@ -16,13 +16,13 @@ Run
 ### Create a new item, owned by `userId`
 
 ```
-./occ tfs:create --user <userId>
+./occ tfs:create <userId>
 ```
 
 ### Create a new (sub) entry to an item by `itemId`
 
 ```
-./occ tfs:create --related <itemId>
+./occ tfs:create --related <itemId> <userId>
 ```
 
 ### Share an item, based on `itemId`, recipient `singleId` and initiator `userId`
@@ -34,7 +34,7 @@ Run
 ### Display the items available from `userId`'s point of view
 
 ```
-./occ tfs:read <userId>
+./occ tfs:show [<userId>]
 ```
 
 - Uninstall the app

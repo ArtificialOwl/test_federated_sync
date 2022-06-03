@@ -84,6 +84,7 @@ class ItemRequest extends ItemRequestBuilder {
 	public function update(Item $item): void {
 		$qb = $this->getItemUpdateSql();
 		$qb->set('title', $qb->createNamedParameter($item->getTitle()));
+		$qb->limitToUniqueId($item->getUniqueId());
 
 		$qb->executeStatement();
 	}

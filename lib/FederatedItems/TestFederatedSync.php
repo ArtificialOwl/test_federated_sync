@@ -113,7 +113,7 @@ class TestFederatedSync implements
 	 * @inheritdoc
 	 */
 	public function serializeItem(string $itemId): array {
-		$item = $this->getItem($itemId);
+		$item = $this->getCompleteItem($itemId);
 
 		return $this->serialize($item);
 	}
@@ -130,6 +130,33 @@ class TestFederatedSync implements
 
 		$this->entryRequest->removeEntriesFromItem($item->getUniqueId());
 		$this->entryRequest->saveAll($item->getEntries());
+	}
+
+
+	/**
+	 * @inheritdoc
+	 */
+	public function itemExists(string $itemId): bool {
+		try {
+			$this->itemRequest->getItem($itemId);
+		} catch (ItemNotFoundException $e) {
+			return false;
+		}
+
+		return true;
+	}
+
+
+	/**
+	 * @param string $itemId
+	 *
+	 * @return string
+	 * @throws ItemNotFoundException
+	 */
+	public function getOwner(string $itemId): string {
+		$item = $this->itemRequest->getItem($itemId);
+
+		return $item->getUserSingleId();
 	}
 
 
@@ -212,20 +239,37 @@ class TestFederatedSync implements
 	/**
 	 * @inheritdoc
 	 */
-	public function isItemUpdatable(
+	public function isItemModifiable(
 		string $itemId,
+		string $updateType,
+		string $updateTypeId,
 		array $extraData,
 		IFederatedUser $federatedUser
-	): array {
-		$item = $this->getItem($itemId);
+	): bool {
+		return true;
+//		$item = $this->getItem($itemId);
+//
+//		// TODO: implement SyncedItemLock
+//
+//		/** @var Entry $entry */
+//		$entry = $this->deserialize($this->getArray('addEntry', $extraData), Entry::class);
+//		$item->addEntry($entry);
+//
+//		return $this->serialize($item);
+	}
 
-		// TODO: implement SyncedItemLock
-
-		/** @var Entry $entry */
-		$entry = $this->deserialize($this->getArray('addEntry', $extraData), Entry::class);
-		$item->addEntry($entry);
-
-		return $this->serialize($item);
+	public function onItemModification(
+		string $itemId,
+		string $updateType,
+		string $updateTypeId,
+		array $extraData,
+		IFederatedUser $federatedUser
+	): void {
+		if ($updateType === 'entry' && $this->get('addEntry', $extraData) !== '') {
+			/** @var Entry $entry */
+			$entry = $this->deserialize($this->getArray('addEntry', $extraData), Entry::class);
+			$this->entryRequest->save($entry);
+		}
 	}
 
 	/**
@@ -248,7 +292,7 @@ class TestFederatedSync implements
 	 * @return Item
 	 * @throws ItemNotFoundException
 	 */
-	private function getItem(string $itemId): Item {
+	private function getCompleteItem(string $itemId): Item {
 		$item = $this->itemRequest->getItem($itemId);
 		$item->setEntries($this->entryRequest->getRelated($itemId));
 

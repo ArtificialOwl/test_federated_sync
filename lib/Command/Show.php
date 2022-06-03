@@ -137,7 +137,7 @@ class Show extends Base {
 			/** @var Item $item */
 			$item = $data->gObj('item', Item::class);
 
-			return '<info>' . $item->getUniqueId() . '</info> - ' . $item->getTitle();
+			return '<info>' . $item->getUniqueId() . '</info> (' . $item->getUserId() . ') - ' . $item->getTitle();
 		}
 
 		if ($data->hasKey('entry')) {

@@ -237,9 +237,15 @@ class Create extends Base {
 
 		$circleManager->startSession($initiator);
 		$circleManager->getShareManager(Application::APP_ID, TestFederatedSync::ITEM_TYPE)
-					  ->updateItem($itemId, [
-						  'addEntry' => json_encode($entry)
-					  ]);
+					  ->updateItem(
+						  $itemId,
+						  'entry',
+						  '',
+						  [
+							  'addEntry' => json_encode($entry),
+						  ],
+						  false
+					  );
 
 		return $this->entryRequest->getEntry($entry->getUniqueId());
 	}
